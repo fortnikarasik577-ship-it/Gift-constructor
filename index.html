@@ -1,0 +1,329 @@
+<!DOCTYPE html>
+<html lang="uk">
+
+<head>
+	<meta charset="UTF-8">
+	<meta name="viewport" content="width=device-width, initial-scale=1.0">
+	<title>Конструктор подарунків & Адмін-панель</title>
+	<link rel="stylesheet" href="style.css">
+</head>
+
+<body>
+	<header class="main-header">
+		<div class="header-content">
+			<div class="logo-area">
+				<span class="logo-icon">🎁</span>
+				<h2>Gift Constructor</h2>
+			</div>
+			<nav class="nav-tabs" aria-label="Головна навігація">
+				<button type="button" id="tabConstructor" class="nav-tab active">
+					<span>🎁</span> Конструктор
+				</button>
+				<button type="button" id="tabAdmin" class="nav-tab">
+					<span>⚙️</span> Адмін-панель
+					<span id="adminGiftCountBadge" class="nav-badge" title="Кількість подарунків у базі">0</span>
+				</button>
+			</nav>
+		</div>
+	</header>
+
+	<main class="main-content">
+		<!-- СЕКЦІЯ 1: КОНСТРУКТОР ПОДАРУНКІВ -->
+		<section id="constructorView" class="view-panel active">
+			<div class="container">
+				<h1>Збери свій подарунок</h1>
+				<p class="subtitle">Оберіть параметри та отримайте найкращу рекомендацію</p>
+
+				<!-- Форма підбору подарунка -->
+				<form id="giftForm" novalidate>
+					<div class="form-group">
+						<label for="recipientSelect">Отримувач:</label>
+						<select id="recipientSelect" required>
+							<option value="">-- Оберіть отримувача --</option>
+						</select>
+					</div>
+
+					<div class="form-group">
+						<label for="occasionSelect">Подія:</label>
+						<select id="occasionSelect" required>
+							<option value="">-- Оберіть подію --</option>
+						</select>
+					</div>
+
+					<div class="form-group">
+						<label for="budgetInput">Бюджет (грн):</label>
+						<input type="number" id="budgetInput" placeholder="Вкажіть ваш бюджет" min="1" required>
+					</div>
+
+					<button type="submit" id="submitBtn">Зібрати подарунок</button>
+				</form>
+
+				<!-- Блок помилки форми конструктора -->
+				<div id="errorMessage" class="error-box" style="display: none;" role="alert">
+					⚠️ Будь ласка, заповніть усі поля форми!
+				</div>
+
+				<!-- Блок результату (один варіант подарунка) -->
+				<div id="rezultatContainer" class="results-wrapper empty-state">
+					<div class="empty-state-content">
+						<h3>🎁 Подарунок не зібрано</h3>
+						<p>Оберіть отримувача, подію та вкажіть бюджет у формі вище, після чого натисніть кнопку «Зібрати».</p>
+					</div>
+					<div id="resultCard" class="result-card" style="display: none;"></div>
+				</div>
+			</div>
+		</section>
+
+		<!-- СЕКЦІЯ 2: АДМІН-ПАНЕЛЬ КЕРУВАННЯ ПОДАРУНКАМИ -->
+		<section id="adminView" class="view-panel" style="display: none;">
+			<div class="admin-container">
+				<!-- Заголовок адмінки та статистика -->
+				<div class="admin-header-card">
+					<div class="admin-header-text">
+						<h1>Панель адміністратора</h1>
+						<p class="subtitle">Керування базою подарунків, валідація, редагування та контроль відповідності даних</p>
+					</div>
+
+					<!-- Статистика -->
+					<div class="admin-stats-grid">
+						<div class="stat-card">
+							<span class="stat-icon">🎁</span>
+							<div>
+								<div class="stat-val" id="statTotalGifts">0</div>
+								<div class="stat-lbl">Подарунків</div>
+							</div>
+						</div>
+						<div class="stat-card">
+							<span class="stat-icon">👤</span>
+							<div>
+								<div class="stat-val" id="statTotalRecipients">0</div>
+								<div class="stat-lbl">Отримувачів</div>
+							</div>
+						</div>
+						<div class="stat-card">
+							<span class="stat-icon">🎉</span>
+							<div>
+								<div class="stat-val" id="statTotalOccasions">0</div>
+								<div class="stat-lbl">Подій / Свят</div>
+							</div>
+						</div>
+						<div class="stat-card status-card">
+							<span class="stat-icon">💾</span>
+							<div>
+								<div class="stat-val sync-status" id="statSyncStatus">Збережено</div>
+								<div class="stat-lbl" id="statLastSavedTime">LocalStorage</div>
+							</div>
+						</div>
+					</div>
+				</div>
+
+				<!-- Панель керування та фільтри -->
+				<div class="admin-toolbar-card">
+					<div class="toolbar-actions">
+						<button type="button" id="btnOpenAddModal" class="btn btn-primary">
+							<span>➕</span> Додати подарунок
+						</button>
+						<button type="button" id="btnSaveStorage" class="btn btn-success" title="Зберегти всі зміни у LocalStorage">
+							<span>💾</span> Зберегти зміни
+						</button>
+					</div>
+
+					<div class="toolbar-filters">
+						<div class="search-input-wrapper">
+							<span class="search-icon">🔍</span>
+							<input type="text" id="adminSearchInput" placeholder="Пошук за назвою чи описом...">
+						</div>
+						<select id="adminFilterRecipient" class="filter-select">
+							<option value="">Всі отримувачі</option>
+						</select>
+						<select id="adminFilterOccasion" class="filter-select">
+							<option value="">Всі події</option>
+						</select>
+					</div>
+				</div>
+
+				<!-- Список/Таблиця подарунків -->
+				<div class="admin-table-card">
+					<div class="table-header-info">
+						<h3>Список подарунків (<span id="filteredGiftsCount">0</span>)</h3>
+						<span class="table-hint">Клікніть «Редагувати» для зміни або «Видалити» для вилучення</span>
+					</div>
+
+					<div class="table-responsive">
+						<table class="gifts-table" id="giftsTable">
+							<thead>
+								<tr>
+									<th>Фото</th>
+									<th>Отримувач</th>
+									<th>Подія</th>
+									<th>Категорія</th>
+									<th>Назва та опис</th>
+									<th>Коефіцієнт ціни</th>
+									<th class="th-actions">Дії</th>
+								</tr>
+							</thead>
+							<tbody id="giftsTableBody">
+								<!-- Заповнюється через JS -->
+							</tbody>
+						</table>
+					</div>
+
+					<div id="noGiftsFound" class="empty-table-message" style="display: none;">
+						<p>🔍 Подарунків за заданими критеріями не знайдено.</p>
+					</div>
+				</div>
+			</div>
+		</section>
+	</main>
+
+	<!-- МОДАЛЬНЕ ВІКНО: ДОДАВАННЯ ТА РЕДАГУВАННЯ ПОДАРУНКА -->
+	<div id="giftModal" class="modal-overlay" style="display: none;" role="dialog" aria-modal="true" aria-labelledby="modalTitle">
+		<div class="modal-container">
+			<div class="modal-header">
+				<h3 id="modalTitle">➕ Додати новий подарунок</h3>
+				<button type="button" class="modal-close-btn" id="modalCloseBtn" aria-label="Закрити модальне вікно">&times;</button>
+			</div>
+
+			<form id="giftEditorForm" novalidate>
+				<input type="hidden" id="editGiftId" value="">
+
+				<!-- Перевірка відповідності даних (Integrity / Conflict alert) -->
+				<div id="conflictAlert" class="conflict-alert" style="display: none;" role="alert">
+					<span class="alert-icon">⚠️</span>
+					<div class="alert-text" id="conflictAlertText">
+						Для цієї пари (Отримувач + Подія) вже зареєстровано подарунок!
+					</div>
+				</div>
+
+				<div class="modal-body-grid">
+					<!-- Ліва колонка: поля форми -->
+					<div class="modal-form-fields">
+						<div class="form-row">
+							<div class="form-group flex-1">
+								<label for="giftRecipientInput">Отримувач: <span class="req">*</span></label>
+								<input type="text" id="giftRecipientInput" list="existingRecipientsList" placeholder="Наприклад: Мама, Брат, Колега..." required>
+								<datalist id="existingRecipientsList"></datalist>
+								<span class="field-error" id="errRecipient"></span>
+							</div>
+
+							<div class="form-group flex-1">
+								<label for="giftOccasionInput">Подія: <span class="req">*</span></label>
+								<input type="text" id="giftOccasionInput" list="existingOccasionsList" placeholder="Наприклад: ДН, НР, 8Б..." required>
+								<datalist id="existingOccasionsList"></datalist>
+								<span class="field-error" id="errOccasion"></span>
+							</div>
+						</div>
+
+						<div class="form-row">
+							<div class="form-group flex-1">
+								<label for="giftTitleInput">Назва подарунка: <span class="req">*</span></label>
+								<input type="text" id="giftTitleInput" placeholder="Коротка приваблива назва" required>
+								<span class="field-error" id="errTitle"></span>
+							</div>
+
+							<div class="form-group flex-1">
+								<label for="giftBadgeInput">Категорія / Бейдж: <span class="req">*</span></label>
+								<input type="text" id="giftBadgeInput" placeholder="Наприклад: СПА & Догляд, Tech, Преміум" required>
+								<span class="field-error" id="errBadge"></span>
+							</div>
+						</div>
+
+						<div class="form-group">
+							<label for="giftDescInput">Опис подарунка: <span class="req">*</span></label>
+							<textarea id="giftDescInput" rows="3" placeholder="Детальний опис складу набору чи особливості подарунка (мін. 10 символів)" required></textarea>
+							<span class="field-error" id="errDesc"></span>
+						</div>
+
+						<div class="form-row">
+							<div class="form-group flex-2">
+								<label for="giftImgInput">URL зображення: <span class="req">*</span></label>
+								<input type="url" id="giftImgInput" placeholder="https://... або assets/images/..." required>
+								<span class="field-error" id="errImg"></span>
+							</div>
+
+							<div class="form-group flex-1">
+								<label for="giftPriceFactorInput" title="Множник від введеного бюджету користувача">Коефіцієнт ціни: <span class="req">*</span></label>
+								<input type="number" id="giftPriceFactorInput" step="0.05" min="0.1" max="3.0" value="0.9" required>
+								<span class="field-error" id="errPriceFactor"></span>
+							</div>
+						</div>
+
+						<!-- Швидкі готові зображення для зручності -->
+						<div class="quick-presets-box">
+							<span class="presets-label">Швидкі фото-пресети:</span>
+							<div class="presets-buttons" id="presetButtons">
+								<button type="button" class="preset-btn" data-url="https://images.unsplash.com/photo-1540555700478-4be289fbecef?w=500&q=80">🧖 СПА</button>
+								<button type="button" class="preset-btn" data-url="https://images.unsplash.com/photo-1549007994-cb92caebd54b?w=500&q=80">🍬 Солодощі</button>
+								<button type="button" class="preset-btn" data-url="https://images.unsplash.com/photo-1514432324607-a09d9b4aefdd?w=500&q=80">☕ Кава</button>
+								<button type="button" class="preset-btn" data-url="https://images.unsplash.com/photo-1561181286-d3fee7d55364?w=500&q=80">💐 Квіти</button>
+								<button type="button" class="preset-btn" data-url="https://images.unsplash.com/photo-1519389950473-47ba0277781c?w=500&q=80">💻 Tech</button>
+								<button type="button" class="preset-btn" data-url="https://images.unsplash.com/photo-1584100936595-c0654b55a2e2?w=500&q=80">🧣 Затишок</button>
+								<button type="button" class="preset-btn" data-url="assets/images/celebration.jpg">🎉 Свято</button>
+							</div>
+						</div>
+					</div>
+
+					<!-- Права колонка: Живий попередній перегляд картки -->
+					<div class="modal-preview-wrapper">
+						<div class="preview-title">Живий перегляд картки</div>
+						<div class="preview-card-box">
+							<div class="preview-card">
+								<div class="card-badge" id="previewBadge">Категорія</div>
+								<div class="preview-img-container">
+									<img id="previewImage" src="assets/images/celebration.jpg" alt="Прев'ю подарунка">
+								</div>
+								<div class="preview-card-body">
+									<div class="card-target-tag">
+										👤 <strong id="previewRecipient">Отримувач</strong> • <span id="previewOccasion">Подія</span>
+									</div>
+									<h4 id="previewTitle">Назва подарунка</h4>
+									<p id="previewDesc">Тут буде відображатися опис вашого подарунка...</p>
+									<div class="preview-price">
+										Коефіцієнт розрахунку: <strong id="previewFactor">0.90x</strong>
+									</div>
+								</div>
+							</div>
+						</div>
+					</div>
+				</div>
+
+				<div class="modal-footer">
+					<button type="button" class="btn btn-outline" id="modalCancelBtn">Скасувати</button>
+					<button type="submit" class="btn btn-primary" id="modalSubmitBtn">💾 Зберегти подарунок</button>
+				</div>
+			</form>
+		</div>
+	</div>
+
+	<!-- МОДАЛЬНЕ ВІКНО: ПІДТВЕРДЖЕННЯ ВИДАЛЕННЯ -->
+	<div id="deleteConfirmModal" class="modal-overlay" style="display: none;" role="dialog" aria-modal="true">
+		<div class="modal-container modal-sm">
+			<div class="modal-header">
+				<h3>🗑️ Підтвердження видалення</h3>
+				<button type="button" class="modal-close-btn" id="deleteCloseBtn">&times;</button>
+			</div>
+			<div class="modal-body-confirm">
+				<p>Ви дійсно бажаєте видалити цей подарунок?</p>
+				<div class="delete-item-info" id="deleteItemInfo">
+					<!-- Назва подарунка, що видаляється -->
+				</div>
+				<p class="warning-text">⚠️ Цю дію можна скасувати лише відновленням початкової бази.</p>
+			</div>
+			<div class="modal-footer">
+				<button type="button" class="btn btn-outline" id="deleteCancelBtn">Скасувати</button>
+				<button type="button" class="btn btn-danger" id="deleteConfirmBtn">Так, видалити</button>
+			</div>
+		</div>
+	</div>
+
+	<!-- КОНТЕЙНЕР ДЛЯ СПЛИВАЮЧИХ СПОВІЩЕНЬ (TOASTS) -->
+	<div id="toastContainer" class="toast-container" aria-live="polite"></div>
+
+	<footer>
+		<p>© 2026 Конструктор подарунків • Система керування базою даних</p>
+	</footer>
+
+	<script src="script.js"></script>
+</body>
+
+</html>
